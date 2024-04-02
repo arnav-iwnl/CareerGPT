@@ -2,14 +2,6 @@ import os
 import streamlit as st
 from dotenv import load_dotenv
 import google.generativeai as gen_ai
-import pathlib
-import textwrap
-from IPython.display import display
-from IPython.display import Markdown
-
-def to_markdown(text):
-    text = text.replace('•', ' *')
-    return Markdown(textwrap.indent(text, '> ', predicate=lambda _: True))
 
 # Load environment variables
 load_dotenv()
@@ -18,32 +10,82 @@ load_dotenv()
 st.set_page_config(
     page_title="Chat with Gemini-Pro!",
     page_icon=":brain:",  # Favicon emoji
-    layout="centered",  # Page layout option
+    layout="wide",  # Page layout option
 )
 
+# Load Google API key from environment variables
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
-# Set up Google Gemini-Pro AI model
-gen_ai.configure(api_key=GOOGLE_API_KEY)
-model = gen_ai.GenerativeModel('gemini-pro')
+# Check if API key is available
+if not GOOGLE_API_KEY:
+    st.error(
+        "Google API key not found. Please set GOOGLE_API_KEY environment variable.")
+    st.stop()  # Stop execution if API key is not found
+
+# Initialize Google Gemini-Pro AI model
+try:
+    gen_ai.configure(api_key=GOOGLE_API_KEY)
+    model = gen_ai.GenerativeModel('gemini-pro')
+except Exception as e:
+    st.error(f"Failed to initialize Gemini-Pro AI model: {e}")
+    st.stop()  # Stop execution if model initialization fails
+
+current_theme = st.session_state.get("current_theme", "light")
+t1 = st.session_state.get("t1", " Dark 🌜")
+
+# Button to toggle dark and light themes
+if st.button(f"{t1}", key="theme_toggle_button"):
+    if current_theme == "light":
+        st.session_state["t1"] = " Dark 🌜"
+        st.session_state["current_theme"] = "dark"
+        st._config.set_option(f'theme.base', "dark")
+    else:
+        st.session_state["t1"] = " Light 🌞"
+        st.session_state["current_theme"] = "light"
+        st._config.set_option(f'theme.base', "light")
 
 # Function to translate roles between Gemini-Pro and Streamlit terminology
+
+
 def translate_role_for_streamlit(user_role):
     if user_role == "model":
         return "assistant"
     else:
         return user_role
 
+# Function to check if input contains keywords related to domains or careers
+
+
+def contains_keywords(input_text):
+    # Add more keywords as needed
+    keywords = ["web", "app", "domain", "career"]
+    return [keyword for keyword in keywords if keyword in input_text]
+
+
+# Mapping of keywords to related links
+keyword_links = {
+    "web": ["https://example.com/web1", "https://example.com/web2"],
+    "app": ["https://example.com/app1", "https://example.com/app2"],
+    "cyber": ["https://example.com/domain1", "https://example.com/domain2"],
+    "aiml": ["https://example.com/career1", "https://example.com/career2"],
+    "aids": ["https://example.com/career1", "https://example.com/career2"],
+    "iot": ["https://example.com/career1", "https://example.com/career2"]
+}
+
 # Initialize chat session in Streamlit if not already present
 if "chat_session" not in st.session_state:
-    st.session_state.chat_session = model.start_chat(history=[])
+    try:
+        st.session_state.chat_session = model.start_chat(history=[])
+    except Exception as e:
+        st.error(f"Failed to start chat session: {e}")
+        st.stop()  # Stop execution if chat session initialization fails
 
-# Initialize search history list
+# Initialize set to store unique search terms
 if "search_history" not in st.session_state:
-    st.session_state.search_history = []
+    st.session_state.search_history = set()
 
 # Display the chatbot's title on the page
-st.title("🤖 Gemini Pro - ChatBot")
+st.title("🎓🤖 CareerGPT")
 
 # Display the chat history
 for message in st.session_state.chat_session.history:
@@ -51,26 +93,37 @@ for message in st.session_state.chat_session.history:
         st.markdown(message.parts[0].text)
 
 # Input field for user's message
-user_prompt = st.chat_input("Ask Gemini-Pro...")
+user_prompt = st.chat_input("Ask CareerGPT...")
 if user_prompt:
     # Add user's message to chat and display it
     st.chat_message("user").markdown(user_prompt)
-
     # Send user's message to Gemini-Pro and get the response
-    gemini_response = st.session_state.chat_session.send_message(user_prompt)
-
+    try:
+        gemini_response = st.session_state.chat_session.send_message(
+            "Roadmap on "+user_prompt+" domain and also give examples of softwares. Have Software section as '##Software Examples'")
+    except Exception as e:
+        st.error(f"Failed to send message to CareerGPT: {e}")
+        st.stop()  # Stop execution if sending message fails
     # Display Gemini-Pro's response
     with st.chat_message("assistant"):
         st.markdown(gemini_response.text)
-
-    # Append user's message to search history
-    st.session_state.search_history.append(user_prompt)
+        found_keywords = contains_keywords(user_prompt.lower())
+        if found_keywords:
+            # Display related links for each found keyword
+            for keyword in found_keywords:
+                st.markdown(f"### Links related to {
+                            keyword.capitalize()} domain:")
+                for link in keyword_links[keyword]:
+                    st.markdown(f"- [{link}]({link})")
+    # Add user's message to search history set
+    st.session_state.search_history.add(user_prompt)
 
 # Sidebar tab to display past search history
 with st.sidebar:
     st.title("Search History")
-    for idx, search in enumerate(reversed(st.session_state.search_history)):
+    for idx, search in enumerate(st.session_state.search_history):
         if st.sidebar.button(f"{idx+1}. {search}"):
-            st.session_state.search_history.append(search)
-            user_prompt = search
-            st.session_state.chat_session.send_message(user_prompt)
+            try:
+                st.session_state.chat_session.send_message(search)
+            except Exception as e:
+                st.error(f"Failed to send message to CareerGPT: {e}")
