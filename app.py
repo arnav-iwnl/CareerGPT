@@ -1,20 +1,15 @@
 import os
-
 import streamlit as st
 from dotenv import load_dotenv
 import google.generativeai as gen_ai
-
 import pathlib
 import textwrap
-
-
 from IPython.display import display
 from IPython.display import Markdown
 
-
 def to_markdown(text):
-  text = text.replace('•', '  *')
-  return Markdown(textwrap.indent(text, '> ', predicate=lambda _: True))
+    text = text.replace('•', ' *')
+    return Markdown(textwrap.indent(text, '> ', predicate=lambda _: True))
 
 # Load environment variables
 load_dotenv()
@@ -26,12 +21,11 @@ st.set_page_config(
     layout="centered",  # Page layout option
 )
 
-GOOGLE_API_KEY = os.getenv("AIzaSyA95AMKtRNnAoZcvuFpz4nU0zhaUwDlGEw")
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
 # Set up Google Gemini-Pro AI model
 gen_ai.configure(api_key=GOOGLE_API_KEY)
 model = gen_ai.GenerativeModel('gemini-pro')
-
 
 # Function to translate roles between Gemini-Pro and Streamlit terminology
 def translate_role_for_streamlit(user_role):
@@ -40,11 +34,13 @@ def translate_role_for_streamlit(user_role):
     else:
         return user_role
 
-
 # Initialize chat session in Streamlit if not already present
 if "chat_session" not in st.session_state:
     st.session_state.chat_session = model.start_chat(history=[])
 
+# Initialize search history list
+if "search_history" not in st.session_state:
+    st.session_state.search_history = []
 
 # Display the chatbot's title on the page
 st.title("🤖 Gemini Pro - ChatBot")
@@ -66,3 +62,15 @@ if user_prompt:
     # Display Gemini-Pro's response
     with st.chat_message("assistant"):
         st.markdown(gemini_response.text)
+
+    # Append user's message to search history
+    st.session_state.search_history.append(user_prompt)
+
+# Sidebar tab to display past search history
+with st.sidebar:
+    st.title("Search History")
+    for idx, search in enumerate(reversed(st.session_state.search_history)):
+        if st.sidebar.button(f"{idx+1}. {search}"):
+            st.session_state.search_history.append(search)
+            user_prompt = search
+            st.session_state.chat_session.send_message(user_prompt)
