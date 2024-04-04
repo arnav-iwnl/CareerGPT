@@ -2,7 +2,7 @@ import os
 import streamlit as st
 from dotenv import load_dotenv
 import google.generativeai as gen_ai
-
+import courses_scrap as scrap
 # Load environment variables
 load_dotenv()
 
@@ -54,23 +54,10 @@ def translate_role_for_streamlit(user_role):
         return user_role
 
 # Function to check if input contains keywords related to domains or careers
-
-
 def contains_keywords(input_text):
     # Add more keywords as needed
-    keywords = ["web", "app", "domain", "career"]
+    keywords = ["web", "app", "cyber", "aiml", "artificial intelligence" "iot" "cybersecurity"]
     return [keyword for keyword in keywords if keyword in input_text]
-
-
-# Mapping of keywords to related links
-keyword_links = {
-    "web": ["https://example.com/web1", "https://example.com/web2"],
-    "app": ["https://example.com/app1", "https://example.com/app2"],
-    "cyber": ["https://example.com/domain1", "https://example.com/domain2"],
-    "aiml": ["https://example.com/career1", "https://example.com/career2"],
-    "aids": ["https://example.com/career1", "https://example.com/career2"],
-    "iot": ["https://example.com/career1", "https://example.com/career2"]
-}
 
 # Initialize chat session in Streamlit if not already present
 if "chat_session" not in st.session_state:
@@ -110,11 +97,14 @@ if user_prompt:
         found_keywords = contains_keywords(user_prompt.lower())
         if found_keywords:
             # Display related links for each found keyword
+            courses_links =[]
             for keyword in found_keywords:
-                st.markdown(f"### Links related to {
-                            keyword.capitalize()} domain:")
-                for link in keyword_links[keyword]:
-                    st.markdown(f"- [{link}]({link})")
+                st.markdown(f"### Courses related to {keyword.capitalize()} domain:")
+                url = f"https://www.coursebuffet.com/search?q={keyword}"
+                courses_links=scrap.scrapit(url)
+                courses_list = "\n".join([f"<li><a href='{link}' target='_blank'>{link}</a></li>" for link in courses_links])
+                st.markdown(f"<ol>{courses_list}</ol>", unsafe_allow_html=True)
+                
     # Add user's message to search history set
     st.session_state.search_history.add(user_prompt)
 
