@@ -66,7 +66,7 @@ def translate_role_for_streamlit(user_role):
 # Function to check if input contains keywords related to domains or careers
 def contains_keywords(input_text):
     # Add more keywords as needed
-    keywords = ["web", "app", "cyber", "aiml", "artificial intelligence", "iot", "cybersecurity", "video editing", "graphic designing", "machine learning", "data science"]
+    keywords = ["web", "app", "cyber", "aiml", "artificial intelligence" ,"iot" ,"cybersecurity","video editing","graphic designing","machine learning","data science"]
     return [keyword for keyword in keywords if keyword in input_text]
 
 # Initialize chat session in Streamlit if not already present
