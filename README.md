@@ -1,5 +1,3 @@
-# Gemini Py
- Chatbot using Python and Gemini Pro
 
 ![image](https://github.com/user-attachments/assets/15187bdb-e351-49e6-a298-436b0610a612)
 
